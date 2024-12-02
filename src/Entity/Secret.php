@@ -2,12 +2,17 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Post;
 use App\Repository\SecretRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: SecretRepository::class)]
-#[UniqueEntity('$hash')]
+#[UniqueEntity('hash')]
 class Secret
 {
     #[ORM\Id]
@@ -15,19 +20,23 @@ class Secret
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, unique: true)]
+    #[Assert\NotBlank]
     private ?string $hash = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
     private ?string $secretText = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
     private ?\DateTimeImmutable $expiresAt = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
     private ?int $remainingViews = null;
 
     public function getId(): ?int
