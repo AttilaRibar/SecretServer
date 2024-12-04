@@ -4,6 +4,17 @@ nelmio_api_doc:
       title: Secret Server
       description: This is an API of a secret service. You can save your secret by using the API. You can restrict the access of a secret after the certen number of views or after a certen period of time.
       version: 1.0.0
-#  areas: # to filter documented areas
-#    path_patterns:
-#      - ^/api(?!/doc$) # Accepts routes under /api except /api/doc
+    basePath: /v1
+    tags:
+      - name: "secret"
+        externalDocs:
+          description: "Find out more"
+          url: "http://swagger.io"
+
+    schemes: [ http, https ]
+
+  areas:
+    default:
+      disable_default_routes: true
+      path_patterns:
+        - ^/v1

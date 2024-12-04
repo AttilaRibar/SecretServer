@@ -2,13 +2,10 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\Post;
 use App\Repository\SecretRepository;
 use Doctrine\ORM\Mapping as ORM;
+use OpenApi\Attributes\Property;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
-use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: SecretRepository::class)]
@@ -22,21 +19,51 @@ class Secret
 
     #[ORM\Column(length: 255, unique: true)]
     #[Assert\NotBlank]
+    #[Property(
+        property: 'hash',
+        description: 'Unique hash to identify the secrets',
+        type: 'string'
+    )]
     private ?string $hash = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
+    #[Property(
+        property: 'secret',
+        description: 'The secret itself',
+        type: 'string'
+    )]
     private ?string $secretText = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
+    #[Property(
+        property: 'createdAt',
+        description: 'The date and time of the creation',
+        type: 'string',
+        format: 'date-time'
+    )]
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column]
     #[Assert\NotBlank]
+    #[Property(
+        property: 'expiresAt',
+        description: 'The secret cannot be reached after this time',
+        type: 'string',
+        format: 'date-time'
+    )]
     private ?\DateTimeImmutable $expiresAt = null;
 
     #[ORM\Column]
     #[Assert\NotBlank]
+    #[Property(
+        property: 'remainingViews',
+        description: 'How many times the secret can be viewed',
+        type: 'integer',
+        format: 'int32'
+    )]
+    #[Assert\GreaterThan(0)]
     private ?int $remainingViews = null;
 
     public function getId(): ?int
