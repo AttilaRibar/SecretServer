@@ -16,28 +16,25 @@ class SecretRepository extends ServiceEntityRepository
         parent::__construct($registry, Secret::class);
     }
 
-//    /**
-//     * @return Secret[] Returns an array of Secret objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('s')
-//            ->andWhere('s.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('s.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
+    /**
+     * Returns a secret that found with the hash string.
+     * It excludes the expired secrets and that's which don't have remaining views.
+     *
+     * @param string $hash Search hash
+     *
+     * @return Secret|null
+     */
+    public function findOneByHash(string $hash): ?Secret
+    {
+        $qb = $this->createQueryBuilder('s');
+        return $qb
+            ->andWhere('s.hash = :hash')
+            ->andWhere('s.remainingViews > 0')
+            ->andWhere($qb->expr()->orX('s.expiresAt > :now')->add('s.expiresAt IS NULL'))
+            ->setParameter('hash', $hash)
+            ->setParameter('now', new \DateTimeImmutable())
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 
-//    public function findOneBySomeField($value): ?Secret
-//    {
-//        return $this->createQueryBuilder('s')
-//            ->andWhere('s.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
 }

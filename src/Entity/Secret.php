@@ -6,9 +6,13 @@ use App\Repository\SecretRepository;
 use Doctrine\ORM\Mapping as ORM;
 use OpenApi\Attributes\Property;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\String\ByteString;
 use Symfony\Component\Validator\Constraints as Assert;
 use App\Validator\Constraint as CustomAssert;
 
+/**
+ * Stores a user defined secret text
+ */
 #[ORM\Entity(repositoryClass: SecretRepository::class)]
 #[UniqueEntity('hash')]
 class Secret
@@ -25,7 +29,7 @@ class Secret
         description: 'Unique hash to identify the secrets',
         type: 'string'
     )]
-    private ?string $hash = null;
+    private string $hash;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
@@ -34,7 +38,7 @@ class Secret
         description: 'The secret itself',
         type: 'string'
     )]
-    private ?string $secretText = null;
+    private string $secretText;
 
     #[ORM\Column]
     #[Assert\NotNull]
@@ -44,7 +48,7 @@ class Secret
         type: 'string',
         format: 'date-time'
     )]
-    private ?\DateTimeImmutable $createdAt = null;
+    private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(nullable: true)]
     #[CustomAssert\DateTimeOrNull]
@@ -64,7 +68,21 @@ class Secret
         type: 'integer',
         format: 'int32'
     )]
-    private ?int $remainingViews = null;
+    private int $remainingViews;
+
+    /**
+     * Creates the Secret object, sets the createdAt to actual time and remaining views to one
+     * and generates a new hash.
+     *
+     * @param string $secretText The secret that should be storing
+     */
+    public function __construct(string $secretText)
+    {
+        $this->secretText = $secretText;
+        $this->createdAt = new \DateTimeImmutable();
+        $this->hash = ByteString::fromRandom(64)->toString();
+        $this->remainingViews = 1;
+    }
 
     public function getId(): ?int
     {

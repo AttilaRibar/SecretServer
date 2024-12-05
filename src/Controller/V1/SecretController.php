@@ -12,9 +12,11 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\String\ByteString;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+/**
+ * It controls the secret creating and viewing
+ */
 #[Route('/v1')]
 class SecretController extends AbstractController
 {
@@ -29,6 +31,14 @@ class SecretController extends AbstractController
         $this->validator = $validator;
     }
 
+    /**
+     * It handles the secret creating and storing.
+     * If the parameters have been given and its valid the secret will be created.
+     *
+     * @param Request $request
+     * @param EntityManagerInterface $entityManager
+     * @return Response
+     */
     #[Route('/secret', name: 'addSecret', methods: ['POST'])]
     #[OA\Post(
         description: 'Save a secret with restrictions on views or expiration time.',
@@ -86,10 +96,7 @@ class SecretController extends AbstractController
             return new JsonResponse(['error' => 'Invalid input'], 405);
         }
 
-        $secretEntity = new Secret();
-        $secretEntity->setHash(ByteString::fromRandom(64)->toString());
-        $secretEntity->setSecretText($secretText);
-        $secretEntity->setCreatedAt(new \DateTimeImmutable());
+        $secretEntity = new Secret($secretText);
         $secretEntity->setExpirationTime($expireAfter);
         $secretEntity->setRemainingViews($expireAfterViews);
 
@@ -100,16 +107,18 @@ class SecretController extends AbstractController
         $entityManager->persist($secretEntity);
         $entityManager->flush();
 
-        $contentType = $request->getAcceptableContentTypes();
-        if (in_array('application/xml', $contentType)) {
-            $xmlContent = $this->serializer->serialize($secretEntity, 'xml');
-            return new Response($xmlContent, 200, ['Content-Type' => 'application/xml']);
-        }
-
-        $jsonContent = $this->serializer->serialize($secretEntity, 'json');
-        return new Response($jsonContent, 200, ['Content-Type' => 'application/json']);
+        return $this->getResponseByAcceptHeader($request->getAcceptableContentTypes(), $secretEntity);
     }
 
+    /**
+     * It handles the secret view request. If the secret can be found it decrements the remaining views
+     * and returns the secret in the accepted format.
+     *
+     * @param Request $request
+     * @param EntityManagerInterface $entityManager
+     * @param string $hash Hash string from url
+     * @return Response
+     */
     #[Route('/secret/{hash}', name: 'getSecretByHash', methods: ['GET'])]
     #[OA\Get(description: "Returns a single secret", summary: 'Find a secret by hash')]
     #[OA\Parameter(name: 'hash', description: "Unique hash to identify the secret", in: 'path', required: true, schema: new OA\Schema(type: 'string'))]
@@ -129,6 +138,34 @@ class SecretController extends AbstractController
     #[OA\Response(response: 404, description: "Secret not found")]
     public function getSecretByHash(Request $request, EntityManagerInterface $entityManager, string $hash): Response
     {
-        return new Response('Not implemented yet', Response::HTTP_NOT_IMPLEMENTED);
+        if (!$secretEntity = $entityManager->getRepository(Secret::class)->findOneByHash($hash)) {
+            return new JsonResponse(['error' => 'Secret not found'], 404);
+        }
+
+        $secretEntity->setRemainingViews($secretEntity->getRemainingViews() - 1);
+        $entityManager->persist($secretEntity);
+        $entityManager->flush();
+
+        return $this->getResponseByAcceptHeader($request->getAcceptableContentTypes(), $secretEntity);
+    }
+
+
+    /**
+     * It returns a Response object based on the preferred content type. The default content type is: application/json
+     *
+     * @param array $acceptHeaders An array of accept headers that contains preferred response format.
+     * @param Secret $secret The Secret object that needs to be serialized into the response.
+     *
+     * @return Response
+     */
+    protected function getResponseByAcceptHeader(array $acceptHeaders, Secret $secret): Response
+    {
+        if (reset($acceptHeaders) === 'application/xml') {
+            $xmlContent = $this->serializer->serialize($secret, 'xml');
+            return new Response($xmlContent, 200, ['Content-Type' => 'application/xml']);
+        }
+
+        $jsonContent = $this->serializer->serialize($secret, 'json');
+        return new Response($jsonContent, 200, ['Content-Type' => 'application/json']);
     }
 }
