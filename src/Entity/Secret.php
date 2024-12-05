@@ -7,6 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 use OpenApi\Attributes\Property;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
+use App\Validator\Constraint as CustomAssert;
 
 #[ORM\Entity(repositoryClass: SecretRepository::class)]
 #[UniqueEntity('hash')]
@@ -36,7 +37,7 @@ class Secret
     private ?string $secretText = null;
 
     #[ORM\Column]
-    #[Assert\NotBlank]
+    #[Assert\NotNull]
     #[Property(
         property: 'createdAt',
         description: 'The date and time of the creation',
@@ -45,8 +46,8 @@ class Secret
     )]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[ORM\Column]
-    #[Assert\NotBlank]
+    #[ORM\Column(nullable: true)]
+    #[CustomAssert\DateTimeOrNull]
     #[Property(
         property: 'expiresAt',
         description: 'The secret cannot be reached after this time',
@@ -56,14 +57,13 @@ class Secret
     private ?\DateTimeImmutable $expiresAt = null;
 
     #[ORM\Column]
-    #[Assert\NotBlank]
+    #[Assert\GreaterThan(0)]
     #[Property(
         property: 'remainingViews',
         description: 'How many times the secret can be viewed',
         type: 'integer',
         format: 'int32'
     )]
-    #[Assert\GreaterThan(0)]
     private ?int $remainingViews = null;
 
     public function getId(): ?int
@@ -128,6 +128,25 @@ class Secret
     {
         $this->remainingViews = $remainingViews;
 
+        return $this;
+    }
+
+
+    /**
+     * Sets the <b>expiresAt</b> property. When the parameter is zero the secret never will expire,
+     * otherwise it's expired in x minutes.
+     *
+     * @param int $timeInMinutes Zero or a positive number
+     * @return $this
+     */
+    public function setExpirationTime(int $timeInMinutes): static
+    {
+        if ($timeInMinutes <= 0) {
+            $this->expiresAt = null;
+            return $this;
+        }
+
+        $this->expiresAt = new \DateTimeImmutable("+ {$timeInMinutes} minutes");
         return $this;
     }
 }
