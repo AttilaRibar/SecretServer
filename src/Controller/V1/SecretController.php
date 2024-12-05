@@ -93,7 +93,7 @@ class SecretController extends AbstractController
         $expireAfter = $request->request->get('expireAfter');
 
         if (!is_string($secretText) || !is_numeric($expireAfterViews) || !is_numeric($expireAfter)) {
-            return new JsonResponse(['error' => 'Invalid input'], 405);
+            return new Response(null, 405);
         }
 
         $secretEntity = new Secret($secretText);
@@ -101,7 +101,7 @@ class SecretController extends AbstractController
         $secretEntity->setRemainingViews($expireAfterViews);
 
         if (count($this->validator->validate($secretEntity)) > 0) {
-            return new JsonResponse(['error' => 'Invalid input'], 405);
+            return new Response(null, 405);
         }
 
         $entityManager->persist($secretEntity);
@@ -139,7 +139,7 @@ class SecretController extends AbstractController
     public function getSecretByHash(Request $request, EntityManagerInterface $entityManager, string $hash): Response
     {
         if (!$secretEntity = $entityManager->getRepository(Secret::class)->findOneByHash($hash)) {
-            return new JsonResponse(['error' => 'Secret not found'], 404);
+            return new Response(null, 404);
         }
 
         $secretEntity->setRemainingViews($secretEntity->getRemainingViews() - 1);
